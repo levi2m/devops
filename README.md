@@ -16,7 +16,7 @@ O objetivo deste desafio é criar um ambiente de deployment baseado em GitOps us
 
 2.2. Crie um novo projeto.
 
-2.3. Crie um novo repositório chamado "Desafio-Azure-Devops" e compartilhe com [jeyvisson.gomes@devoteam.com](mailto:jeyvisson.gomes@devoteam.com)
+2.3. Crie um novo repositório chamado "Desafio-Azure-Devops" e compartilhe com ~~AVALIADOR~~
 
 ## Passo 3: Configurar Flux e Kustomize 🔧
 
