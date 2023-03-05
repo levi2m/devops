@@ -1,4 +1,4 @@
-#1- Creating a Kubernetes Cluster with Terraform and AKS
+# 1 - Creating a Kubernetes Cluster with Terraform and AKS
 
 This guide outlines the steps necessary to create a Kubernetes cluster using Terraform and AKS on Azure.
 
