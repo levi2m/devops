@@ -1,130 +1,75 @@
 
-# Documentação de IAC para criação de recurso AKS no Azure
+## Como criar um cluster Kubernetes usando Terraform e Azure Kubernetes Service (AKS)
 
-Este documento descreve as etapas necessárias para a criação de um cluster AKS (Azure Kubernetes Services) usando Infrastructure as Code (IAC) no Azure. Para este tutorial, será utilizado o Terraform.
+Neste tutorial, você aprenderá a usar o Terraform para criar um cluster Kubernetes em Azure Kubernetes Service (AKS).
 
-## Pré-requisitos
+### Pré-requisitos
 
-Antes de começar, é necessário ter os seguintes itens instalados e configurados:
+-   [Conta do Azure](https://azure.com/free)
+-   [Terraform](https://www.terraform.io/downloads.html) instalado
+-   [kubectl](https://kubernetes.io/docs/tasks/tools/) instalado
 
--   Azure CLI
--   Terraform
--   Conta do Azure
+### Etapa 1: Crie um grupo de recursos
 
-## Passo 1: Criação do arquivo de configuração
+Antes de criar o cluster AKS, você precisa criar um grupo de recursos. Para criar um grupo de recursos, execute o seguinte comando:
 
-O primeiro passo é criar um arquivo de configuração para o Terraform. Este arquivo contém as informações necessárias para a criação do recurso AKS.
+`az group create --name myResourceGroup --location eastus` 
 
+### Etapa 2: Crie um arquivo de configuração Terraform
 
-    # Provider
+Crie um arquivo chamado `main.tf` e adicione o seguinte código:
+
     provider "azurerm" {
       features {}
     }
     
-    # Resource Group
-    resource "azurerm_resource_group" "aks_rg" {
-      name     = "myAKSResourceGroup"
+    resource "azurerm_resource_group" "myResourceGroup" {
+      name     = "myResourceGroup"
       location = "eastus"
     }
     
-    # Virtual Network
-    resource "azurerm_virtual_network" "aks_vnet" {
-      name                = "myAKSVnet"
-      address_space       = ["10.0.0.0/16"]
-      location            = azurerm_resource_group.aks_rg.location
-      resource_group_name = azurerm_resource_group.aks_rg.name
-    }
-    
-    # Subnet
-    resource "azurerm_subnet" "aks_subnet" {
-      name                 = "myAKSSubnet"
-      resource_group_name  = azurerm_resource_group.aks_rg.name
-      virtual_network_name = azurerm_virtual_network.aks_vnet.name
-      address_prefixes     = ["10.0.1.0/24"]
-    }
-    
-    # AKS Cluster
-    resource "azurerm_kubernetes_cluster" "aks_cluster" {
-      name                = "myAKSCluster"
-      location            = azurerm_resource_group.aks_rg.location
-      resource_group_name = azurerm_resource_group.aks_rg.name
-      dns_prefix          = "myAKSDNSPrefix"
-    
-      default_node_pool {
-        name            = "default"
-        node_count      = 1
-        vm_size         = "Standard_D2_v2"
-        vnet_subnet_id  = azurerm_subnet.aks_subnet.id
-      }
-    
-      service_principal {
-        client_id     = "your_client_id"
-        client_secret = "your_client_secret"
-      }
-    
-      tags = {
-        Environment = "Dev"
-      }
+    module "aks" {
+      source              = "Azure/aks"
+      resource_group_name = azurerm_resource_group.myResourceGroup.name
+      dns_prefix          = "myakscluster"
+      agent_count         = 2
     }
 
-Este arquivo de configuração irá criar um novo recurso AKS no Azure com um único nó. É possível personalizar as opções de acordo com as suas necessidades.
+Este arquivo contém as configurações necessárias para criar um cluster AKS com dois nós de agente.
 
-## Passo 2: Autenticação com o Azure
+### Etapa 3: Inicialize e aplique as configurações do Terraform
 
-Para se autenticar no Azure, é necessário utilizar o Azure CLI. Execute o seguinte comando para fazer login:
+No terminal, execute os seguintes comandos:
 
-`az login` 
+`terraform init
+terraform apply` 
 
-Será necessário inserir suas credenciais do Azure para completar o login.
+Quando solicitado, confirme que deseja criar os recursos.
 
-## Passo 3: Inicialização do Terraform
+### Etapa 4: Configure o Kubernetes
 
-Antes de criar o recurso, é necessário inicializar o Terraform com o seguinte comando:
+Execute o seguinte comando para configurar o Kubernetes:
 
-`terraform init` 
+`az aks get-credentials --resource-group myResourceGroup --name myakscluster` 
 
-Este comando irá baixar todos os módulos necessários para criar o recurso AKS.
+Este comando adiciona as credenciais do Kubernetes ao seu arquivo `~/.kube/config`.
 
-## Passo 4: Criação do recurso AKS
+### Etapa 5: Verifique o cluster
 
-Agora que o Terraform está inicializado, é possível criar o recurso AKS com o seguinte comando:
-
-`terraform apply` 
-
-Será necessário confirmar a criação do recurso digitando "yes". O processo pode levar alguns minutos para ser concluído.
-
-## Passo 5: Verificação do recurso AKS criado
-
-Após a criação do recurso AKS, é possível verificar se o cluster foi criado com sucesso. Para isso, execute o seguinte comando no Azure CLI:
-
-`az aks show --resource-group myAKSResourceGroup --name myAKSCluster --query "provisioningState"` 
-
-Este comando irá retornar o estado de provisionamento do cluster. O resultado deve ser "Succeeded" se o cluster foi criado com sucesso.
-
-## Passo 6: Configuração do kubectl
-
-Para gerenciar o cluster AKS, é necessário configurar o kubectl. Para isso, execute o seguinte comando no Azure CLI:
-
-`az aks get-credentials --resource-group myAKSResourceGroup --name myAKSCluster` 
-
-Este comando irá configurar o kubectl com as informações de autenticação do cluster AKS.
-
-## Passo 7: Verificação do cluster AKS usando o kubectl
-
-Após configurar o kubectl, é possível verificar o estado do cluster AKS usando o seguinte comando:
+Execute o seguinte comando para verificar se o cluster foi criado com sucesso:
 
 `kubectl get nodes` 
 
-Este comando irá listar todos os nós do cluster AKS. Se o cluster foi criado com sucesso, o comando deve retornar informações sobre o nó criado.
+Este comando lista os nós no cluster. Se tudo estiver funcionando corretamente, você deverá ver a saída com informações sobre os dois nós de agente.
 
-## Passo 8: Limpeza dos recursos
+### Etapa 6: Limpe os recursos
 
-Após concluir as atividades no cluster AKS, é importante limpar os recursos para evitar cobranças adicionais. Para isso, execute o seguinte comando no Terraform:
+Execute o seguinte comando para remover todos os recursos criados neste tutorial:
 
 `terraform destroy` 
 
-Este comando irá destruir todos os recursos criados no Azure para o cluster AKS.
+Quando solicitado, confirme que deseja destruir os recursos.
 
 ## Conclusão
 
-Este tutorial demonstrou como criar um cluster AKS usando IAC com o Terraform no Azure. É possível personalizar as opções de acordo com as suas necessidades e gerenciar o cluster usando o kubectl. Lembre-se sempre de limpar os recursos após concluir as atividades no cluster para evitar cobranças adicionais.
+Neste tutorial, você aprendeu a criar um cluster Kubernetes usando o Terraform e o AKS. Agora você pode começar a implantar seus aplicativos no Kubernetes.
